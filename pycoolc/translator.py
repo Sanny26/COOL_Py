@@ -157,10 +157,10 @@ class Translator:
 				content = ["{} = {}\n".format(class_attr.name, subcontent)]
 			else:
 				for i, line in enumerate(subcontent):
-					#if i == (len(subcontent)-1):
-					#	content.append("{} = {}\n".format(class_attr.name, line))
-					#else:
-					content.append(self.frmt(line))
+					if i == (len(subcontent)-1):
+						content.append("{} = {}\n".format(class_attr.name, self.frmt(line)))
+					else:
+						content.append(self.frmt(line))
 		return content
 
 	def itr_body(self, body):
@@ -223,6 +223,8 @@ class Translator:
 		if obj.else_body.clsname in ['Boolean']:
 			content.append(self.frmt("return {}\n".format(self.functions[obj.else_body.clsname](obj.else_body)),
 										space))
+		elif obj.else_body.clsname == 'String' and obj.else_body.content == 'continue':
+			content.append(self.frmt('continue\n', space))
 		else:
 			for line in self.functions[obj.else_body.clsname](obj.else_body):
 				content.append(self.frmt(line, space))
