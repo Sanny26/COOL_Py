@@ -521,15 +521,5 @@ if __name__ == '__main__':
         T = Translator()
         T.new_prgm(parse_result)
     else:
-        print("PyCOOLC Parser: Interactive Mode.\r\n")
-        while True:
-            try:
-                s = input('COOL >>> ')
-            except EOFError:
-                break
-            if not s:
-                continue
-            result = parser.parse(s)
-            if result is not None:
-                print(result)
+        print("Please provide input file\n\n./parser.py INPUT_FILE_PATH\n\n")
 

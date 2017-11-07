@@ -2,9 +2,15 @@ import ast as AST
 import re
 import pdb
 
+def flatten(content):
+	return ''.join(content)
+
 class Translator:
 	def __int__(self):
 		pass
+
+	def indent(self, line, space):
+		return "{}{}".format(' '*space, line)
 	
 	def new_prgm(self, obj: AST.Program):
 		#print(obj)
@@ -35,8 +41,7 @@ class Translator:
 							'Case': self.extract_case,
 							'Action': self.extract_action,
 						}
-		self.prgm = ""
-		self.space = 0		
+		self.prgm = ""	
 
 		for each in obj.classes:
 			self.extract_class(each)
@@ -48,43 +53,61 @@ class Translator:
 		if Class.parent:
 				self.prgm += "({})".format(Class.parent)
 		self.prgm += ":\n\n"
-		self.space += 2
-		self.itr_features(Class.features)
+		space = 2
+		for each in self.itr_features(Class.features):
+			self.prgm += self.indent(each, space)
+
+		print(self.prgm)
 	
 	def itr_features(self, features):
+		content = []
 		for each in features:
-			funct_name = type(each).__name__
+			funct_name = each.clsname
 			if funct_name in self.functions:
-				self.prgm += self.functions[funct_name](each)
+				for line in self.functions[funct_name](each):
+					content.append(line)
 			else:
-				print("error ocurred")
-				pass
-		print(self.prgm)
-		print('--------------------------')
-		
+				raise SyntaxError("{} is not a valid Keyword in COOL".format(funct_name))
+
+		return content		
 
 	def extract_classmethod(self, class_method):
-		content = ""
-		content += "{}def {}(self, ".format(" "*self.space, class_method.name)
+		content = []
+		line = ""
+
+		##class definition
+		line += "def {}(self, ".format(class_method.name)
 		if class_method.formal_params:
-			content += self.itr_parameters(class_method.formal_params)
-		content += ")"
+			line += self.itr_parameters(class_method.formal_params)
+		line += ")"
 		if class_method.return_type:
-			content += " -> {}".format(class_method.return_type)
-		content += ":\n"
-		self.space += 2
-		content += self.extract_classbody(class_method.body)
-		self.space -= 2
-		content += "\n"
+			line += " -> {}".format(class_method.return_type)
+		line += ":\n"
+		content.append(line)
+
+		##class body
+		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		space = 2
+		for each in self.extract_classbody(class_method.body):
+			content.append(self.indent(each, space))
+		content.append("\n")
+
 		return content
 
 	def extract_classbody(self, body):
-		#print(body)
-		content = ""
+		content = []
+		space = 2
 		if body.clsname in ['Integer', 'Boolean', 'String']:
-			content += "{}return {}".format(' '*self.space, self.functions[body.clsname](body))
+			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			content = [self.indent("return {}".format(flatten(self.functions[body.clsname](body))), space)]
 		else:
-			content += self.functions[body.clsname](body)
+			body_content = self.functions[body.clsname](body)
+			for i, each in enumerate(body_content):
+				if i == (len(body_content)-1):
+					content.append(self.indent("return {}".format(flatten(each)), space))
+				else:
+					content.append(self.indent(flatten(each), space))
+
 		return content
 
 	def itr_parameters(self, formal_params):
@@ -94,84 +117,78 @@ class Translator:
 		return content
 
 	def extract_param(self, param):
+		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		return "{} : {},".format(param.name, param.param_type)
 		####need to replace param.param_type with funct which maps cool reserved to python reserved
 
 	def extract_classattribute(self, class_attr):
-		content = ""
+		content = []
+		line = ""
 		if class_attr.init_expr is None:
-			content += "{}self.{} = {}\n\n".format(' '*self.space, class_attr.name, class_attr.init_expr)
+			content = ["{} = {}\n".format(class_attr.name, class_attr.init_expr)]
 		else:
-			funct_name = type(class_attr.init_expr).__name__
-			if funct_name not in  ['Block', 'Object']:
-				subcontent = self.functions[funct_name](class_attr.init_expr)
-				content += "{}self.{} = {}\n\n".format(' '*self.space, class_attr.name, subcontent)
+			funct_name = class_attr.init_expr.clsname
+			subcontent = self.functions[funct_name](class_attr.init_expr)
+			if funct_name not in  ['Block', 'WhileLoop']:				
+				content = ["{} = {}\n".format(class_attr.name, subcontent)]
 			else:
-				content += self.functions[funct_name](class_attr.init_expr, class_attr.name)
-
+				for i, line in enumerate(subcontent):
+					#if i == (len(subcontent)-1):
+					#	content.append("{} = {}\n".format(class_attr.name, line))
+					#else:
+					content.append(flatten(line))
 		return content
 
-
 	def itr_body(self, body):
-		content = ""
+		content = []
 		for i in range(len(body.expr_list)):
 			each = body.expr_list[i]
-			content += self.functions[each.clsname](each)
+			for line in self.functions[each.clsname](each):
+				content.append(flatten(line))
 		
 		return content
 
 	def extract_integer(self, obj):
-		return str(obj.content)
+		return [str(obj.content)]
 
 	def extract_string(self, obj):
-		return obj.content
+		return [obj.content]
 
 	def extract_boolean(self, obj):
-		return str(obj.content)
+		return [str(obj.content)]
 
-	def extract_block(self, obj, name=None):
-		content = ""
+	def extract_block(self, obj):
+		content = []
 		for i in range(len(obj.expr_list)):
-			funct_name = type(obj.expr_list[i]).__name__
+			funct_name = obj.expr_list[i].clsname
 			sub_content = self.functions[funct_name](obj.expr_list[i])
-			if i != (len(obj.expr_list)-1):
-				content += "{}{}\n".format(' '*self.space, sub_content)
-			else:
-				if name is not None:
-					content += "{}self.{} = {}\n\n".format(' '*self.space, name, sub_content)
+			content.append("{}\n".format(flatten(sub_content)))			
 
 		return content
 		
 	def extract_whileloop(self, obj):
-		content = ""
+		content = []
+		space = 2
 		predicate = self.functions[obj.predicate.clsname](obj.predicate)
-		#print(obj.body)
 		body = self.functions[type(obj.body).__name__](obj.body)
+		content.append("while ({}):\n".format(flatten(predicate)))
+		for line in body:
+			content.append(self.indent(flatten(line), space))
 
-		content += "{}while ({}):\n".format(' '*self.space, predicate)
-		self.space += 2
-		##extract_body
-		content += self.functions[obj.body.clsname](obj.body)+'\n'
-		self.space -= 2
 		return content
 
-	def extract_object(self, obj, name=None):
-		return  ""
+	def extract_object(self, obj):
+		return  [obj.name]
 
 	def extract_if(self, obj):
-
-		###ccheck if else body is a if class then generate elif
-		print(obj)
-		content = ""
-		content += "{}if ({}):\n".format(' '*self.space,
-										self.functions[obj.predicate.clsname](obj.predicate))
-		self.space += 2
-		content += self.functions[obj.then_body.clsname](obj.then_body)+"\n"
-		self.space -= 2
-		content += "{}else:\n".format(' '*self.space)
-		self.space += 2
-		content += self.functions[obj.else_body.clsname](obj.else_body)+'\n'
-		self.space -= 2
+		content = []
+		space = 2
+		content.append("if ({}):\n".format(self.functions[obj.predicate.clsname](obj.predicate)))
+		for line in self.functions[obj.then_body.clsname](obj.then_body):
+			content.append(self.indent(flatten(line),space))
+		content.append("else:\n")
+		for line in self.functions[obj.else_body.clsname](obj.else_body):
+			content.append(self.indent(flatten(line), space))
 
 		return content
 
@@ -179,11 +196,8 @@ class Translator:
 		return ""
 
 	def extract_assignment(self, obj):
-		content = ""
-		print(obj)
-		content += "{}{} = {}".format(' '*self.space, 
-										self.functions[obj.instance.clsname](obj.instance),
-										self.functions[obj.expr.clsname](obj.expr))
+		content = ["{} = {}".format(flatten(self.functions[obj.instance.clsname](obj.instance)),
+									flatten(self.functions[obj.expr.clsname](obj.expr)))]
 		return content
 
 	def extract_self(self, obj):
@@ -247,14 +261,14 @@ class Translator:
 		return content
 
 	def extract_let(self, obj):
-		content = ""
+		content = []
 		return content
 
 	def extract_case(self, obj):
-		content = ""
+		content = []
 		return content
 
 	def extract_action(self, obj):
-		content = ""
+		content = []
 		return content
 
