@@ -4,7 +4,7 @@ class Cons():
   xcdr = None
   def isNil(self, ) -> bool:
       return False  
-  def init(self, hd : int,tl : list()):
+  def init(self, hd : int,tl : list()) -> Cons:
       self.xcar = hd
       self.xcdr = tl
       xx = 10
