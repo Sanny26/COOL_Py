@@ -2,6 +2,11 @@ import ast as AST
 import re
 import pdb
 
+py_reserved = {'Bool': 'bool',
+				'Int': 'int',
+				'String': 'str',
+				'SELF_TYPE': 'self'}
+
 def flatten(content):
 	return ''.join(content)
 
@@ -11,10 +16,28 @@ class Translator:
 
 	def indent(self, line, space):
 		return "{}{}".format(' '*space, line)
+
+	def if_class_attr(self, word):
+		if word in self.class_attributes:
+			word = "self.{}".format(word)
+
+		return word
+
+	def frmt(self, line, space=0):
+		return self.indent(self.if_class_attr(flatten(line)), space)
+
+	def map_p(self, word):
+		if word in py_reserved:
+			return py_reserved[word]
+
+		return word
 	
 	def new_prgm(self, obj: AST.Program):
+		if obj is None:
+			return
 		#print(obj)
-
+		
+		self.class_attributes = []
 		self.functions = {	'ClassMethod': self.extract_classmethod,
 							'ClassAttribute': self.extract_classattribute,
 							'Integer': self.extract_integer,
@@ -25,6 +48,7 @@ class Translator:
 							'Object': self.extract_object,
 							'If': self.extract_if,
 							'DynamicDispatch': self.extract_dynamic_dispatch,
+							'StaticDispatch': self.extract_static_dispatch,
 							'Assignment': self.extract_assignment,
 							'Self': self.extract_self,
 							'IntegerComplement': self.extract_integer_complement,
@@ -55,7 +79,7 @@ class Translator:
 		self.prgm += ":\n\n"
 		space = 2
 		for each in self.itr_features(Class.features):
-			self.prgm += self.indent(each, space)
+			self.prgm += self.frmt(each, space)
 
 		print(self.prgm)
 	
@@ -81,7 +105,7 @@ class Translator:
 			line += self.itr_parameters(class_method.formal_params)
 		line += ")"
 		if class_method.return_type:
-			line += " -> {}".format(class_method.return_type)
+			line += " -> {}".format(self.map_p(class_method.return_type))
 		line += ":\n"
 		content.append(line)
 
@@ -89,7 +113,7 @@ class Translator:
 		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		space = 2
 		for each in self.extract_classbody(class_method.body):
-			content.append(self.indent(each, space))
+			content.append(self.frmt(each, space))
 		content.append("\n")
 
 		return content
@@ -99,14 +123,14 @@ class Translator:
 		space = 2
 		if body.clsname in ['Integer', 'Boolean', 'String']:
 			# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			content = [self.indent("return {}".format(flatten(self.functions[body.clsname](body))), space)]
+			content = [self.frmt("return {}".format(flatten(self.functions[body.clsname](body))), space)]
 		else:
 			body_content = self.functions[body.clsname](body)
 			for i, each in enumerate(body_content):
 				if i == (len(body_content)-1):
-					content.append(self.indent("return {}".format(flatten(each)), space))
+					content.append(self.frmt("return {}".format(flatten(each)), space))
 				else:
-					content.append(self.indent(flatten(each), space))
+					content.append(self.frmt(each, space))
 
 		return content
 
@@ -117,13 +141,12 @@ class Translator:
 		return content
 
 	def extract_param(self, param):
-		# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		return "{} : {},".format(param.name, param.param_type)
-		####need to replace param.param_type with funct which maps cool reserved to python reserved
+		return "{} : {},".format(param.name, self.map_p(param.param_type))
 
 	def extract_classattribute(self, class_attr):
 		content = []
 		line = ""
+		self.class_attributes.append(class_attr.name)
 		if class_attr.init_expr is None:
 			content = ["{} = {}\n".format(class_attr.name, class_attr.init_expr)]
 		else:
@@ -136,7 +159,7 @@ class Translator:
 					#if i == (len(subcontent)-1):
 					#	content.append("{} = {}\n".format(class_attr.name, line))
 					#else:
-					content.append(flatten(line))
+					content.append(self.frmt(line))
 		return content
 
 	def itr_body(self, body):
@@ -144,25 +167,25 @@ class Translator:
 		for i in range(len(body.expr_list)):
 			each = body.expr_list[i]
 			for line in self.functions[each.clsname](each):
-				content.append(flatten(line))
+				content.append(self.frmt(line))
 		
 		return content
 
 	def extract_integer(self, obj):
-		return [str(obj.content)]
+		return str(obj.content)
 
 	def extract_string(self, obj):
-		return [obj.content]
+		return repr(obj.content)
 
 	def extract_boolean(self, obj):
-		return [str(obj.content)]
+		return str(obj.content)
 
 	def extract_block(self, obj):
 		content = []
 		for i in range(len(obj.expr_list)):
 			funct_name = obj.expr_list[i].clsname
 			sub_content = self.functions[funct_name](obj.expr_list[i])
-			content.append("{}\n".format(flatten(sub_content)))			
+			content.append("{}\n".format(self.frmt(sub_content)))			
 
 		return content
 		
@@ -171,93 +194,112 @@ class Translator:
 		space = 2
 		predicate = self.functions[obj.predicate.clsname](obj.predicate)
 		body = self.functions[type(obj.body).__name__](obj.body)
-		content.append("while ({}):\n".format(flatten(predicate)))
+		content.append("while ({}):\n".format(self.frmt(predicate)))
 		for line in body:
-			content.append(self.indent(flatten(line), space))
+			content.append(self.indent(self.frmt(line), space))
 
 		return content
 
 	def extract_object(self, obj):
-		return  [obj.name]
-
-	def extract_if(self, obj):
-		content = []
-		space = 2
-		content.append("if ({}):\n".format(self.functions[obj.predicate.clsname](obj.predicate)))
-		for line in self.functions[obj.then_body.clsname](obj.then_body):
-			content.append(self.indent(flatten(line),space))
-		content.append("else:\n")
-		for line in self.functions[obj.else_body.clsname](obj.else_body):
-			content.append(self.indent(flatten(line), space))
-
-		return content
-
-	def extract_dynamic_dispatch(self, obj):
-		return ""
-
-	def extract_assignment(self, obj):
-		content = ["{} = {}".format(flatten(self.functions[obj.instance.clsname](obj.instance)),
-									flatten(self.functions[obj.expr.clsname](obj.expr)))]
-		return content
+		return  obj.name
 
 	def extract_self(self, obj):
-		return ""
+		return "self"
+
+	def extract_if(self, obj):
+		###add new line after if and else body
+		content = []
+		space = 2
+		content.append("if ({}):\n".format(self.frmt(self.functions[obj.predicate.clsname](obj.predicate))))
+		if obj.then_body.clsname in ['Boolean']:
+			content.append(self.frmt("return {}\n".format(self.functions[obj.then_body.clsname](obj.then_body)),
+										space))
+		else:
+			for line in self.functions[obj.then_body.clsname](obj.then_body):
+				content.append(self.frmt(line,space))
+		content.append("else:\n")
+		if obj.else_body.clsname in ['Boolean']:
+			content.append(self.frmt("return {}\n".format(self.functions[obj.else_body.clsname](obj.else_body)),
+										space))
+		else:
+			for line in self.functions[obj.else_body.clsname](obj.else_body):
+				content.append(self.frmt(line, space))
+
+		return content	
+
+
+	def extract_dynamic_dispatch(self, obj):
+		args = ""
+		for arg in obj.arguments:
+			args += "{}, ".format(self.frmt(self.functions[arg.clsname](arg)))
+		instance = self.functions[obj.instance.clsname](obj.instance)
+		return  ["{}.{}({})".format(instance, obj.method,args)]
+
+	def extract_static_dispatch(self, obj):
+		instance = self.functions[obj.instance.clsname](obj.instance)
+		return []
+
+	def extract_assignment(self, obj):
+		instance = flatten(self.functions[obj.instance.clsname](obj.instance))
+		content = ["{} = {}".format(self.frmt(instance), 
+									self.frmt(self.functions[obj.expr.clsname](obj.expr)))]
+		return content	
 
 	def extract_integer_complement(self, obj):
 		content = ""
-		content += "~({})".format(self.functions[obj.integer_expr.clsname](obj.integer_expr))
+		content += "~({})".format(self.frmt(self.functions[obj.integer_expr.clsname](obj.integer_expr)))
 		return content
 
 	def extract_boolean_complement(self, obj):
 		content = ""
-		content += "int(not {})".format(self.functions[obj.boolean_expr.clsname](obj.boolean_expr))
+		content += "int(not {})".format(self.frmt(self.functions[obj.boolean_expr.clsname](obj.boolean_expr)))
 		return content
 
 	def extract_addition(self, obj):
 		content = ""
-		content += "({}) + ({})".format(self.functions[obj.first.clsname](obj.first),
-									self.functions[obj.second.clsname](obj.second))
+		content += "({}) + ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+									self.frmt(self.functions[obj.second.clsname](obj.second)))
 		return content
 
 	def extract_subtraction(self, obj):
 		content = ""
-		content += "({}) - ({})".format(self.functions[obj.first.clsname](obj.first),
-									self.functions[obj.second.clsname](obj.second))
+		content += "({}) - ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+									self.frmt(self.functions[obj.second.clsname](obj.second)))
 		return content
 
 	def extract_multiplication(self, obj):
 		content = ""
-		content += "({}) * ({})".format(self.functions[obj.first.clsname](obj.first),
-									self.functions[obj.second.clsname](obj.second))
+		content += "({}) * ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+									self.frmt(self.functions[obj.second.clsname](obj.second)))
 		return content
 
 	def extract_division(self, obj):
 		content = ""
-		content += "({}) / ({})".format(self.functions[obj.first.clsname](obj.first),
-									self.functions[obj.second.clsname](obj.second))
+		content += "({}) / ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+									self.frmt(self.functions[obj.second.clsname](obj.second)))
 		return content
 
 	def extract_equal(self, obj):
 		content = ""
-		content += "({}) == ({})".format(self.functions[obj.first.clsname](obj.first),
-									self.functions[obj.second.clsname](obj.second))
+		content += "({}) == ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+									self.frmt(self.functions[obj.second.clsname](obj.second)))
 		return content
 
 	def extract_less_than_or_equal(self, obj):
 		content = ""
-		content += "({}) <= ({})".format(self.functions[obj.first.clsname](obj.first),
-									self.functions[obj.second.clsname](obj.second))
+		content += "({}) <= ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+									self.frmt(self.functions[obj.second.clsname](obj.second)))
 		return content
 
 	def extract_less_than(self, obj):
 		content = ""
-		content += "({}) < ({})".format(self.functions[obj.first.clsname](obj.first),
-									self.functions[obj.second.clsname](obj.second))
+		content += "({}) < ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+									self.frmt(self.functions[obj.second.clsname](obj.second)))
 		return content
 
 	def extract_is_void(self, obj):
 		content = ""
-		content += "({}) is None".format(self.functions[obj.expr.clsname])(obj.expr)
+		content += "({}) is None".format(self.frmt(self.functions[obj.expr.clsname])(obj.expr))
 		return content
 
 	def extract_let(self, obj):
