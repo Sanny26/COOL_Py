@@ -10,7 +10,7 @@
 # -----------------------------------------------------------------------------
 
 import ply.yacc as yacc
-import ast as AST 
+import ast as AST
 from lexer import make_lexer
 from translator import Translator
 
@@ -516,10 +516,9 @@ if __name__ == '__main__':
             cool_program_code = file.read()
 
         parse_result = parser.parse(cool_program_code)
-        #print(parse_result)
-        #print('------------------------------------')
+        # print(parse_result)
+        # print('------------------------------------')
         T = Translator()
-        T.new_prgm(parse_result)
+        T.translate(parse_result)
     else:
         print("Please provide input file\n\n./parser.py INPUT_FILE_PATH\n\n")
-
