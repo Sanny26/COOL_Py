@@ -73,6 +73,7 @@ class Translator:
                           'Let': self.extract_let,
                           'Case': self.extract_case,
                           'Action': self.extract_action,
+                          'NewObject': self.extract_new_object,
                           }
         self.prgm = ""
 
@@ -328,7 +329,7 @@ class Translator:
     def extract_is_void(self, obj):
         """Extract isVoid."""
         content = ""
-        content += "({}) is None".format(self.frmt(self.functions[obj.expr.clsname])(obj.expr))
+        content += "({}) is None".format(self.frmt(self.functions[obj.expr.clsname](obj.expr)))
         return content
 
     def extract_let(self, obj):
@@ -345,6 +346,9 @@ class Translator:
         """Extract Action."""
         content = []
         return content
+
+    def extract_new_object(self, obj):
+        return {}().format(obj.type)
 
     # def itr_body(self, body):
     #     content = []
