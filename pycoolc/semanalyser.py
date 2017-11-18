@@ -142,7 +142,7 @@ two roots.
 from logging import info, debug, warning, critical
 from collections import defaultdict
 from typing import Dict, Set, AnyStr, Tuple
-import pycoolc.ast as AST
+import ast as AST
 
 
 # -----------------------------------------------------------------------------
@@ -188,7 +188,7 @@ class PyCoolSemanticAnalyser(object):
         :return: None
         """
         super(PyCoolSemanticAnalyser, self).__init__()
-        
+
         # Initialize the internal program ast instance.
         self._program_ast = None
 
@@ -196,11 +196,11 @@ class PyCoolSemanticAnalyser(object):
         # Dict[AnyStr, AST.Class]
         self._classes_map = dict()
 
-        # Class Inheritance Graph: maps a parent class (key: String) to a unique collection of its 
+        # Class Inheritance Graph: maps a parent class (key: String) to a unique collection of its
         #   children classes (value: set).
         # Dict[AnyStr, Set]
         self._inheritance_graph = defaultdict(set)
-    
+
     # #########################################################################
     #                                PUBLIC                                   #
     # #########################################################################
@@ -214,16 +214,16 @@ class PyCoolSemanticAnalyser(object):
             raise ValueError("Program AST object cannot be None!")
         elif not isinstance(program_ast, AST.Program):
             raise TypeError("Program AST object is not of type \"AST.Program\"!")
-        
+
         self._init_collections(program_ast)
 
         # Run some passes
         self._default_undefined_parent_classes_to_object()
         self._invalidate_inheritance_from_builtin_classes()
         self._check_cyclic_inheritance_relations()
-        
+
         return self._program_ast
-    
+
     # #########################################################################
     #                                PRIVATE                                  #
     # #########################################################################
@@ -330,7 +330,7 @@ class PyCoolSemanticAnalyser(object):
 
         # All classes
         all_classes = builtin_classes + program_ast.classes
-        
+
         return AST.Program(classes=all_classes)
 
     @staticmethod
@@ -348,7 +348,7 @@ class PyCoolSemanticAnalyser(object):
         if not isinstance(program_ast, AST.Program):
             raise SemanticAnalysisError(
                 "Expected argument to be of type AST.Program, but got {} instead.".format(type(program_ast)))
-        
+
         classes_map = {}
         inheritance_graph = defaultdict(set)
 
@@ -396,13 +396,13 @@ class PyCoolSemanticAnalyser(object):
 
         if not self._inheritance_graph or len(self._inheritance_graph) == 0:
             warning("Inheritance Graph is empty!")
-        
+
         if not self._classes_map or len(self._classes_map) == 0:
             warning("Classes Map is empty!")
 
         # Assume self._inheritance_graph and self._classes_map are initialized
         non_existing_parents = [
-            klass for klass in self._inheritance_graph.keys() 
+            klass for klass in self._inheritance_graph.keys()
             if klass not in self._classes_map and klass != OBJECT_CLASS
         ]
 
@@ -415,12 +415,12 @@ class PyCoolSemanticAnalyser(object):
             # Add the child classes of this nonexisting parent class to the set of classes
             #   that inherit from the "Object" class.
             self._inheritance_graph[OBJECT_CLASS] |= self._inheritance_graph[parent_klass]
-            
+
             # For every child class that inherits from the nonexisting parent, modify their
             #   parent attribute in their AST Node to have "Object" instead.
             for child_klass in self._inheritance_graph[parent_klass]:
                 self._classes_map[child_klass].parent = OBJECT_CLASS
-            
+
             # Delete this nonexistent parent class from the inheritance map
             del self._inheritance_graph[parent_klass]
 
@@ -442,7 +442,7 @@ class PyCoolSemanticAnalyser(object):
                 raise SemanticAnalysisError(
                     "Not Allowed! Class \"{0}\" is inheriting from built-in class \"{1}\".".format(
                         child_klass, parent_klass))
-    
+
     def _check_cyclic_inheritance_relations(self):
         """
         TODO
@@ -499,4 +499,3 @@ if __name__ == '__main__':
     sema_analyser = make_semantic_analyser()
     sema_result = sema_analyser.transform(parse_result)
     print_readable_ast(sema_result)
-

@@ -12,12 +12,12 @@
 import argparse
 
 # compiler stages
-from pycoolc.lexer import make_lexer
-from pycoolc.parser import make_parser
-from pycoolc.semanalyser import make_semantic_analyser
+from lexer import make_lexer
+from parser import make_parser
+from semanalyser import make_semantic_analyser
 
 # compiler utils
-from pycoolc.utils import print_readable_ast
+from utils import print_readable_ast
 
 
 def create_arg_parser():
@@ -37,25 +37,25 @@ def create_arg_parser():
         "-o", "--outfile",
         type=str, action="store", nargs=1, default=None,
         help="Desired name of the output compiled assembly program.")
-    
+
     # Print tokens argument
     arg_parser.add_argument(
-        "--tokens", 
+        "--tokens",
         action="store_true", default=False,
         help="Displays the result of lexical analysis of the input program(s) on stdout.")
 
     # Print AST argument
     arg_parser.add_argument(
-        "--ast", 
+        "--ast",
         action="store_true", default=False,
         help="Displays the result of syntax analysis (abstract syntax tree) of the input program(s) on stdout.")
-    
+
     # Print semantic analysis result argument
     arg_parser.add_argument(
         "--semantics",
         action="store_true", default=False,
         help="Displays the result of semantic analysis of the input program(s) to stdout.")
-    
+
     # Print optimized IR argument
     arg_parser.add_argument(
         "--optimizations",
@@ -120,10 +120,11 @@ def main():
     # Parse command line arguments.
     args = arg_parser.parse_args()
     programs = args.cool_program
+    # import pdb; pdb.set_trace()
 
     # Initialize the master program source code string.
     cool_program_code = ""
-    
+
     # Check all programs have the *.cl extension.
     for program in programs:
         if not str(program).endswith(".cl"):
@@ -162,4 +163,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

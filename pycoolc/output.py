@@ -1,23 +1,17 @@
-class Cons():
+from base import IO, Object
 
-  xcar = None
-  xcdr = None
-  def isNil(self, ) -> bool:
-      return False  
-  def init(self, hd : int,tl : list()) -> Cons:
-      self.xcar = hd
-      self.xcdr = tl
-      xx = 10
-      return self
+class Cons(Object):
 
-if __name__ == "__main__":
-	c = Cons()
-	c.init(10, 25)
-	print(c.xcar)
-	print(c.xcdr)
+    xcar = None
+    xcdr = None
+    
+    def isNil(self, ) -> bool:
+            return False    
+    
+    def init(self, hd : int,tl : str,) -> Object:
+            self.xcar = hd
+            self.xcdr = tl
+            return self
+    
+    xx = 10
 
-	if 10 == 20:
-		print('sdsds')
-
-	else:
-		print('wewewe')

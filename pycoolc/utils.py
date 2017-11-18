@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from pycoolc.ast import AST, Self
+from ast import AST, Self
 
 
 def print_readable_ast(tree, level=0, inline=False):
@@ -35,13 +35,13 @@ def print_readable_ast(tree, level=0, inline=False):
         Checks whether a given object is an instance of an AST class.
         """
         return isinstance(node, AST) and hasattr(node, 'to_tuple')
-    
+
     #####
     # BEGIN
     #
     if is_node(tree):
         attrs = tree.to_tuple()
-        
+
         # First attribute is always the class name
         if len(attrs) <= 1:
             print(indent('{0}()'.format(tree.clsname), level, inline))
@@ -66,4 +66,3 @@ def print_readable_ast(tree, level=0, inline=False):
 
     else:
         print(indent(repr(tree), level, inline))
-

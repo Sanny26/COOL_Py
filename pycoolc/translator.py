@@ -16,6 +16,8 @@ class Translator:
                    'Int': 'int',
                    'String': 'str',
                    'SELF_TYPE': 'self'}
+    loop_counter = 0
+    conditional_var = 0
 
     def __int__(self):
         """Constructor."""
@@ -23,7 +25,7 @@ class Translator:
 
     def indent(self, line, space):
         """Add indentation to a line for specified number of spaces."""
-        return "{}{}".format(' '*space, line)
+        return ' '*space + line
 
     def py_class_attr(self, word):
         """Convert class attributes to python self declarations."""
@@ -35,13 +37,6 @@ class Translator:
     def frmt(self, line, space=0):
         """Format a given line into final printable python string."""
         return self.indent(self.py_class_attr(flatten(line)), space)
-
-    def map_p(self, word):
-        """Convert reserved words to Python equivalent."""
-        if word in self.py_reserved:
-            return self.py_reserved[word]
-
-        return word
 
     def translate(self, obj):
         """Translate a new COOL Program to Python."""
@@ -75,7 +70,7 @@ class Translator:
                           'Action': self.extract_action,
                           'NewObject': self.extract_new_object,
                           }
-        self.prgm = ""
+        self.prgm = "from base import IO, Object\n\n"
 
         for each in obj.classes:
             self.class_attributes = []
@@ -85,7 +80,7 @@ class Translator:
 
     def extract_class(self, Class):
         """Extract and convert a COOL class to Python class."""
-        self.prgm = "class {}".format(Class.name)
+        self.prgm += "class {}".format(Class.name)
         if Class.parent:
                 self.prgm += "({})".format(Class.parent)
         self.prgm += ":\n\n"
@@ -108,21 +103,19 @@ class Translator:
 
     def extract_classmethod(self, class_method):
         """Extract and convert a COOL class method."""
-        content = []
+        content = ["\n"]
         line = ""
+        space = 4
 
         # class definition
         line += "def {}(self, ".format(class_method.name)
         if class_method.formal_params:
             line += self.itr_parameters(class_method.formal_params)
         line += ")"
-        if class_method.return_type:
-            line += " -> {}".format(self.map_p(class_method.return_type))
         line += ":\n"
         content.append(line)
 
         # class body
-        space = 4
         for each in self.extract_method_body(class_method.body):
             content.append(self.frmt(each, space))
         content.append("\n")
@@ -156,7 +149,7 @@ class Translator:
 
     def extract_param(self, param):
         """Extract method parameter and annotate with parameter type."""
-        return "{} : {},".format(param.name, self.map_p(param.param_type))
+        return "{}, ".format(param.name)
 
     def extract_classattribute(self, class_attr):
         """Extract class attributes."""
