@@ -1,6 +1,6 @@
 # Example Cool Programs
 
-The examples directory contains a few small and not so small example programs which illustrate various aspects of the Cool programming language.
+The examples directory contains a few example programs which illustrate various aspects of the Cool programming language.
 
 | PROGRAM                            | DESCRIPTION                                                                                                                 |
 |------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|

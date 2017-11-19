@@ -31,7 +31,7 @@
  *
  *   2) If your class C does not directly or indirectly inherit from
  *      IO, the best way to access IO is through an initialized
- *      attribute of type IO. 
+ *      attribute of type IO.
  *
  *      class C inherits Foo is
  *         io : IO <- new IO;
