@@ -1,32 +1,15 @@
 #!/usr/bin/env python3
-
-# -----------------------------------------------------------------------------
-# parser.py
-#
-# Author:       Ahmad Alhour (aalhour.com).
-# Date:         July 13th, 2016.
-# Description:  The Parser module. Implements syntax analysis and parsing rules
-#               of the COOL CFG.
-# -----------------------------------------------------------------------------
+"""Parser for COOL Programs."""
 
 import ply.yacc as yacc
 import ast as AST
 from lexer import make_lexer
-from translator import Translator
+import sys
+
 
 class PyCoolParser(object):
-    """
-    PyCoolParser class.
+    """Parser."""
 
-    Responsible for Syntax Analysis of COOL Programs. Implements the LALR(1) parsing algorithm.
-
-    To use the parser, create an object from it and then call the parse() method passing in COOL Program(s) code as a
-    string.
-
-    PyCoolParser provides the following public APIs:
-     * build(): Builds the parser.
-     * parse(): Parses a COOL program source code passed as a string.
-    """
     def __init__(self,
                  build_parser=True,
                  debug=False,
@@ -36,26 +19,7 @@ class PyCoolParser(object):
                  yacctab="pycoolc.yacctab",
                  debuglog=None,
                  errorlog=None):
-        """
-        Initializer.
-        :param debug: Debug mode flag.
-        :param optimize: Optimize mode flag.
-        :param outputdir: Output directory of parser output; by default the .out file goes in the same directory.
-        :param debuglog: Debug log file path; by default parser prints to stderr.
-        :param errorlog: Error log file path; by default parser print to stderr.
-        :param build_parser: If this is set to True the internal parser will be built right after initialization,
-         which makes it convenient for direct use. If it's set to False, then an empty parser instance will be
-         initialized and the parser object will have to be built by calling parser.build() after initialization.
-
-        Example:
-         parser = PyCoolParser(build_parser=False)
-         ...
-         parser.build()
-         parser.parse(...)
-         ...
-
-        :return: None
-        """
+        """Initializer."""
         # Initialize self.parser and self.tokens to None
         self.tokens = None
         self.lexer = None
@@ -76,10 +40,6 @@ class PyCoolParser(object):
             self.build(debug=debug, write_tables=write_tables, optimize=optimize, outputdir=outputdir,
                        yacctab=yacctab, debuglog=debuglog, errorlog=errorlog)
 
-    # ################################# PRIVATE ########################################
-
-    # ################################ PRECEDENCE RULES ################################
-
     # precedence rules
     precedence = (
         ('right', 'ASSIGN'),
@@ -93,14 +53,11 @@ class PyCoolParser(object):
         ('left', 'DOT')
     )
 
-    # ################### START OF FORMAL GRAMMAR RULES DECLARATION ####################
-
     def p_program(self, parse):
         """
         program : class_list
         """
         parse[0] = AST.Program(classes=parse[1])
-
 
     def p_class_list(self, parse):
         """
@@ -233,8 +190,6 @@ class PyCoolParser(object):
         """
         parse[0] = AST.Assignment(AST.Object(name=parse[1]), expr=parse[3])
 
-    # ######################### METHODS DISPATCH ######################################
-
     def p_expression_dispatch(self, parse):
         """
         expression : expression DOT ID LPAREN arguments_list_opt RPAREN
@@ -269,8 +224,6 @@ class PyCoolParser(object):
         expression : ID LPAREN arguments_list_opt RPAREN
         """
         parse[0] = AST.DynamicDispatch(instance=AST.Self(), method=parse[1], arguments=parse[3])
-
-    # ######################### PARENTHESIZED, MATH & COMPARISONS #####################
 
     def p_expression_math_operations(self, parse):
         """
@@ -307,8 +260,6 @@ class PyCoolParser(object):
         """
         parse[0] = parse[2]
 
-    # ######################### CONTROL FLOW EXPRESSIONS ##############################
-
     def p_expression_if_conditional(self, parse):
         """
         expression : IF expression THEN expression ELSE expression FI
@@ -320,8 +271,6 @@ class PyCoolParser(object):
         expression : WHILE expression LOOP expression POOL
         """
         parse[0] = AST.WhileLoop(predicate=parse[2], body=parse[4])
-
-    # ######################### LET EXPRESSIONS ########################################
 
     def p_expression_let(self, parse):
         """
@@ -357,8 +306,6 @@ class PyCoolParser(object):
         """
         parse[0] = AST.Let(instance=parse[1], return_type=parse[3], init_expr=parse[5], body=parse[7])
 
-    # ######################### CASE EXPRESSION ########################################
-
     def p_expression_case(self, parse):
         """
         expression : CASE expression OF actions_list ESAC
@@ -380,8 +327,6 @@ class PyCoolParser(object):
         action : ID COLON TYPE ARROW expression SEMICOLON
         """
         parse[0] = (parse[1], parse[3], parse[5])
-
-    # ######################### UNARY OPERATIONS #######################################
 
     def p_expression_new(self, parse):
         """
@@ -407,15 +352,11 @@ class PyCoolParser(object):
         """
         parse[0] = AST.BooleanComplement(parse[2])
 
-    # ######################### THE EMPTY PRODUCTION ###################################
-
     def p_empty(self, parse):
         """
         empty :
         """
         parse[0] = None
-
-    # ######################### PARSE ERROR HANDLER ####################################
 
     def p_error(self, parse):
         """
@@ -429,22 +370,8 @@ class PyCoolParser(object):
             self.error_list.append(error)
             self.parser.errok()
 
-    # ################### END OF FORMAL GRAMMAR RULES SPECIFICATION ####################
-
-    # #################################  PUBLIC  #######################################
-
     def build(self, **kwargs):
-        """
-        Builds the PyCoolParser instance with yaac.yaac() by binding the lexer object and its tokens list in the
-        current instance scope.
-        :param kwargs: yaac.yaac() config parameters, complete list:
-            * debug: Debug mode flag.
-            * optimize: Optimize mode flag.
-            * debuglog: Debug log file path; by default parser prints to stderr.
-            * errorlog: Error log file path; by default parser print to stderr.
-            * outputdir: Output directory of parsing output; by default the .out file goes in the same directory.
-        :return: None
-        """
+        """Build the Parser."""
         # Parse the parameters
         if kwargs is None or len(kwargs) == 0:
             debug, write_tables, optimize, outputdir, yacctab, debuglog, errorlog = \
@@ -470,39 +397,22 @@ class PyCoolParser(object):
         self.parser = yacc.yacc(module=self, write_tables=write_tables, debug=debug, optimize=optimize,
                                 outputdir=outputdir, tabmodule=yacctab, debuglog=debuglog, errorlog=errorlog)
 
-    def parse(self, program_source_code: str) -> AST.Program:
-        """
-        Parses a COOL program source code passed as a string.
-        :param program_source_code: string.
-        :return: Parser output.
-        """
+    def parse(self, program_source_code):
+        """Parse a COOL program source code passed as a string."""
         if self.parser is None:
             raise ValueError("Parser was not build, try building it first with the build() method.")
 
         return self.parser.parse(program_source_code)
 
 
-# -----------------------------------------------------------------------------
-#
-#                     Parser as a Standalone Python Program
-#                     Usage: ./parser.py cool_program.cl
-#
-# -----------------------------------------------------------------------------
-
-
-def make_parser(**kwargs) -> PyCoolParser:
-    """
-    Utility function.
-    :return: PyCoolParser object.
-    """
+def make_parser(**kwargs):
+    """Create new parser."""
     a_parser = PyCoolParser(**kwargs)
     a_parser.build()
     return a_parser
 
 
 if __name__ == '__main__':
-    import sys
-
     parser = make_parser()
 
     if len(sys.argv) > 1:
@@ -516,9 +426,6 @@ if __name__ == '__main__':
             cool_program_code = file.read()
 
         parse_result = parser.parse(cool_program_code)
-        # print(parse_result)
-        # print('------------------------------------')
-        T = Translator()
-        T.translate(parse_result)
+
     else:
         print("Please provide input file\n\n./parser.py INPUT_FILE_PATH\n\n")
