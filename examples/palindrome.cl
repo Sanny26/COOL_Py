@@ -1,4 +1,15 @@
 class Main inherits IO {
+
+main() : SELF_TYPE {
+{
+    i <- ~1;
+    out_string("enter a string\n");
+    if pal(in_string())
+    then out_string("that was a palindrome\n")
+    else out_string("that was not a palindrome\n")
+    fi;
+}
+};
     pal(s : String) : Bool {
     if s.length() = 0
     then true
@@ -12,14 +23,5 @@ class Main inherits IO {
 
     i : Int;
 
-    main() : SELF_TYPE {
-	{
-        i <- ~1;
-	    out_string("enter a string\n");
-	    if pal(in_string())
-	    then out_string("that was a palindrome\n")
-	    else out_string("that was not a palindrome\n")
-	    fi;
-	}
-    };
+
 };

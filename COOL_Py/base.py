@@ -8,12 +8,14 @@ class IO:
 
     def out_string(self, string):
         """Print the string."""
-        print(string)
+        print(string, end="")
+        return self
 
     def out_int(self, integer):
         """Print an integer."""
-        assert type(integer) is int
-        print(integer)
+        assert type(integer) is Integer or type(integer) is int
+        print(integer, end="")
+        return self
 
     def in_string(self):
         """Read string till new line."""
@@ -35,12 +37,13 @@ class Object:
 
     def abort(self):
         """Abort method."""
+        print("PPP")
         sys.exit(0)
 
     def type_name(self):
         """Return the name of the Object class."""
         s = type(self).__str__
-        return s
+        return String(s)
 
     def copy(self):
         """Create a copy of the object."""

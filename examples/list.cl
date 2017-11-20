@@ -28,6 +28,8 @@ class List {
 
    isNil() : Bool { true };
 
+   isnotNil() : Bool { false };
+
    -- Since abort() has return type Object and head() has return type
    -- Int, we need to have an Int as the result of the method body,
    -- even though abort() never returns.
@@ -115,7 +117,7 @@ class Main inherits IO {
    };
 
    -- Note how the dynamic dispatch mechanism is responsible to end
-   -- the while loop. As long as mylist is bound to an object of 
+   -- the while loop. As long as mylist is bound to an object of
    -- dynamic type Cons, the dispatch to isNil calls the isNil method of
    -- the Cons class, which returns false. However when we reach the
    -- end of the list, mylist gets bound to the object that was
@@ -126,7 +128,7 @@ class Main inherits IO {
    main() : Object {
       {
 	 mylist <- new List.cons(1).cons(2).cons(3).cons(4).cons(5);
-	 while (not mylist.isNil()) loop
+	 while (mylist.isnotNil()) loop
 	    {
 	       print_list(mylist);
 	       mylist <- mylist.tail();
@@ -136,6 +138,3 @@ class Main inherits IO {
    };
 
 };
-
-
-
