@@ -3,7 +3,7 @@
 import ast as AST
 from parser import make_parser
 import sys
-import pdb
+
 
 def flatten(content):
     """Flatten a list of strings to a single string."""
@@ -233,30 +233,28 @@ class Translator:
         self.block_counter += 1
         content = ["{} = None\n".format(block_var)]
 
-        for i in range(len(obj.expr_list))[0:-1]:
+        for i in range(len(obj.expr_list)):
             funct_name = obj.expr_list[i].clsname
-            if funct_name in ["Block", "If", "WhileLoop"]:
-                return_var, expr_code = self.functions[funct_name](obj.expr_list[i])
-                content.extend(expr_code)
+            if i == len(obj.expr_list) - 1:
+                if funct_name in ["Block", "If", "WhileLoop"]:
+                    return_var, expr_code = self.functions[funct_name](obj.expr_list[i])
+                    content.extend(expr_code)
+                    return_string = "{} = {}\n".format(block_var, return_var)
+                elif funct_name in ["Boolean", "String", "Integer", "Self", "DynamicDispatch", "Assignment", "ClassAttribute"]:
+                    expr_code = self.frmt(self.functions[funct_name](obj.expr_list[i]))
+                    return_string = "{} = {}\n".format(block_var, expr_code)
+                    content.append(return_string)
+                else:
+                    raise TypeError("Type {} is not valid in a block Statement".format(funct_name))
             else:
-                expr_code = self.functions[funct_name](obj.expr_list[i])
-                content.extend(expr_code)
-                if funct_name in ["Boolean", "String", "Integer", "Self", "DynamicDispatch", "Assignment", "ClassAttribute"]:
-                    content.append("\n")
-
-        # The last expression needs to be returned
-        i = -1
-        funct_name = obj.expr_list[i].clsname
-        if funct_name in ["Block", "If", "WhileLoop"]:
-            return_var, expr_code = self.functions[funct_name](obj.expr_list[i])
-            content.extend(expr_code)
-            return_string = "{} = {}\n".format(block_var, return_var)
-        elif funct_name in ["Boolean", "String", "Integer", "Self", "DynamicDispatch", "Assignment", "ClassAttribute"]:
-            expr_code = self.frmt(self.functions[funct_name](obj.expr_list[i]))
-            return_string = "{} = {}\n".format(block_var, expr_code)
-            content.append(return_string)
-        else:
-            raise TypeError("Type {} is not valid in a block Statement".format(funct_name))
+                if funct_name in ["Block", "If", "WhileLoop"]:
+                    return_var, expr_code = self.functions[funct_name](obj.expr_list[i])
+                    content.extend(expr_code)
+                else:
+                    expr_code = self.functions[funct_name](obj.expr_list[i])
+                    content.extend(expr_code)
+                    if funct_name in ["Boolean", "String", "Integer", "Self", "DynamicDispatch", "Assignment", "ClassAttribute"]:
+                        content.append("\n")
 
         return block_var, content
 
@@ -398,8 +396,8 @@ class Translator:
 
     def extract_division(self, obj):
         """Extract Division."""
-        return "({}) / ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
-                                    self.frmt(self.functions[obj.second.clsname](obj.second)))
+        return "({}) // ({})".format(self.frmt(self.functions[obj.first.clsname](obj.first)),
+                                     self.frmt(self.functions[obj.second.clsname](obj.second)))
 
     def extract_equal(self, obj):
         """Extract Eqaul to."""
@@ -425,6 +423,7 @@ class Translator:
         if obj.type not in ["String", "Boolean", "Integer", "IO", "Object"]:
             return "{}().main()".format(obj.type)
         return "{}()".format(obj.type)
+
 
 if __name__ == '__main__':
     parser = make_parser()
