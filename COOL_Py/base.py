@@ -37,7 +37,6 @@ class Object:
 
     def abort(self):
         """Abort method."""
-        print("PPP")
         sys.exit(0)
 
     def type_name(self):
