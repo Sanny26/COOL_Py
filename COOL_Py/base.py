@@ -1,7 +1,6 @@
 """Basic COOL library implementations in Python."""
 import re
 import sys
-import pdb
 
 
 class IO:
