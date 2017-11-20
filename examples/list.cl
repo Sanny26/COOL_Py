@@ -77,6 +77,8 @@ class Cons inherits List {
 
    isNil() : Bool { false };
 
+   isnotNil() : Bool { true };
+
    head()  : Int { car };
 
    tail()  : List { cdr };
